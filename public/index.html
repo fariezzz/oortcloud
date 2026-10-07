@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OortCloud</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            leaf: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Bootstrap Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col font-sans antialiased">
+
+  <!-- ======================================================================== -->
+  <!-- FULLSCREEN DRAG & DROP OVERLAY (INVISIBLE, MUNCUL SAAT FILE DISERET) -->
+  <!-- ======================================================================== -->
+  <div id="fullscreen-drop-overlay" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden flex-col items-center justify-center p-6 pointer-events-none">
+    <div class="w-full max-w-lg p-10 bg-white rounded-2xl border-2 border-dashed border-emerald-500 shadow-2xl flex flex-col items-center justify-center text-center gap-4">
+      <div class="w-20 h-20 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+        <i class="bi bi-cloud-arrow-up-fill text-4xl"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-slate-800">Lepaskan berkas untuk mengunggah</h3>
+        <p class="text-xs text-slate-500 mt-1">Berkas akan langsung disimpan ke Cloud Storage</p>
+      </div>
+      <span id="upload-limit-info" class="text-xs font-mono px-3.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+        Sisa Storage: --
+      </span>
+    </div>
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- TOP HEADER -->
+  <!-- ======================================================================== -->
+  <header class="h-16 shrink-0 border-b border-slate-200 bg-white px-4 sm:px-6 flex items-center justify-between gap-3 z-30 shadow-xs">
+    
+    <!-- Sisi Kiri: Hamburger Mobile & Logo Bersih -->
+    <div class="flex items-center gap-3 shrink-0">
+      <!-- Tombol Hamburger (Buka/Tutup Sidebar di Mobile & Desktop) -->
+      <button id="btn-toggle-sidebar" class="h-10 w-10 rounded-lg hover:bg-slate-100 border border-slate-200 text-slate-600 flex items-center justify-center transition" title="Buka/Tutup Sidebar">
+        <i class="bi bi-list text-xl"></i>
+      </button>
+
+      <!-- Logo & Judul Aplikasi (Disembunyikan di Tampilan Mobile) -->
+      <div class="hidden sm:flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+          <i class="bi bi-cloud-arrow-up-fill text-2xl"></i>
+        </div>
+        <span class="text-base font-bold tracking-tight text-slate-800">OortCloud</span>
+      </div>
+    </div>
+
+    <!-- Sisi Tengah: Bilah Pencarian Seragam (h-10 & rounded-lg) -->
+    <div class="flex-1 max-w-xl mx-2 sm:mx-4">
+      <div class="relative flex items-center w-full">
+        <i class="bi bi-search absolute left-3.5 text-slate-400 text-sm pointer-events-none"></i>
+        <input type="text" id="search-input" placeholder="Telusuri di OortCloud..." class="w-full h-10 pl-10 pr-9 rounded-lg bg-slate-100/80 border border-slate-200 focus:border-emerald-500 focus:bg-white text-xs sm:text-sm text-slate-800 placeholder-slate-400 outline-hidden transition shadow-2xs">
+        <button id="btn-clear-search" class="hidden absolute right-3 text-slate-400 hover:text-slate-600 text-xs p-1" title="Hapus Pencarian">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sisi Kanan: Status Server Saja (Disembunyikan di Mobile) -->
+    <div class="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
+      <div id="server-status-pill" class="h-10 px-3.5 rounded-lg bg-white border border-slate-200 text-xs flex items-center gap-2 shadow-2xs cursor-pointer hover:border-slate-300 transition" title="Klik untuk memuat ulang status server">
+        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="status-text" class="text-slate-700 font-medium hidden sm:inline">Memeriksa...</span>
+        <span id="status-latency" class="text-slate-400 text-[10px]"></span>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- ======================================================================== -->
+  <!-- STRUKTUR UTAMA (SIDEBAR + WORKSPACE GOOGLE DRIVE) -->
+  <!-- ======================================================================== -->
+  <div class="flex-1 flex min-h-0 overflow-hidden relative">
+
+    <!-- Backdrop untuk Sidebar Mobile Drawer -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/40 z-20 hidden lg:hidden backdrop-blur-2xs transition-opacity"></div>
+
+    <!-- SIDEBAR KIRI -->
+    <aside id="sidebar" class="fixed lg:static top-16 bottom-0 left-0 z-20 w-64 h-full shrink-0 bg-white border-r border-slate-200 flex flex-col justify-between p-3.5 sm:p-4 select-none overflow-hidden -translate-x-full lg:translate-x-0 shadow-lg lg:shadow-none">
+      
+      <!-- Bagian Atas Sidebar -->
+      <div class="space-y-3">
+        
+        <!-- Header Kecil Sidebar: Label & Tombol Tutup Sidebar -->
+        <div class="flex items-center justify-between px-1 pb-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Navigasi</span>
+          <button id="btn-collapse-sidebar" class="h-7 w-7 rounded-md hover:bg-slate-100 border border-slate-200/60 text-slate-400 hover:text-slate-700 flex items-center justify-center transition" title="Tutup Sidebar (Ctrl+B)">
+            <i class="bi bi-layout-sidebar-inset text-sm"></i>
+          </button>
+        </div>
+
+        <!-- Tombol Unggah Berkas Utama (Hijau Daun, rounded-lg, h-10) -->
+        <input type="file" id="file-input" class="hidden">
+        <button id="btn-sidebar-upload" class="w-full h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs hover:shadow-sm transition flex items-center justify-center gap-2.5 font-semibold text-xs sm:text-sm whitespace-nowrap overflow-hidden">
+          <i class="bi bi-cloud-arrow-up text-base shrink-0"></i>
+          <span class="truncate">Unggah Berkas</span>
+        </button>
+
+        <!-- Menu Kategori Navigasi (Bebas Sisa Border Saat Pindah) -->
+        <nav class="space-y-0.5 text-xs sm:text-sm font-medium" id="sidebar-nav">
+          <button data-cat="all" class="cat-nav-btn active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-hdd-network text-base shrink-0"></i>
+            <span class="truncate">Drive Saya</span>
+          </button>
+          <button data-cat="document" class="cat-nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-file-earmark-text text-base shrink-0"></i>
+            <span class="truncate">Dokumen</span>
+          </button>
+          <button data-cat="image" class="cat-nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-file-earmark-image text-base shrink-0"></i>
+            <span class="truncate">Gambar</span>
+          </button>
+          <button data-cat="audio" class="cat-nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-file-earmark-music text-base shrink-0"></i>
+            <span class="truncate">Audio</span>
+          </button>
+          <button data-cat="video" class="cat-nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-file-earmark-play text-base shrink-0"></i>
+            <span class="truncate">Video</span>
+          </button>
+          <button data-cat="archive" class="cat-nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-file-earmark-zip text-base shrink-0"></i>
+            <span class="truncate">Arsip</span>
+          </button>
+          <button data-cat="other" class="cat-nav-btn w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left truncate">
+            <i class="bi bi-file-earmark text-base shrink-0"></i>
+            <span class="truncate">Lainnya</span>
+          </button>
+        </nav>
+
+      </div>
+
+      <!-- Bagian Bawah Sidebar: Indikator Penyimpanan -->
+      <div class="pt-3 border-t border-slate-200 space-y-1.5 shrink-0 overflow-hidden">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-700 truncate">
+          <i class="bi bi-cloud-check text-emerald-600 shrink-0"></i>
+          <span class="truncate">Penyimpanan</span>
+        </div>
+
+        <!-- Progress Bar Penyimpanan -->
+        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden border border-slate-200/60">
+          <div id="sidebar-storage-bar" class="bg-emerald-600 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Deskripsi Sisa & Terpakai -->
+        <p class="text-[11px] text-slate-500 leading-snug truncate">
+          <span id="sidebar-used-text" class="font-medium text-slate-800">0 B</span> dari <span id="sidebar-quota-text" class="font-medium text-slate-800">4 GB</span> digunakan
+        </p>
+        <p class="text-[10px] text-emerald-700 font-medium truncate" id="sidebar-remaining-text">
+          Sisa 4 GB bebas
+        </p>
+      </div>
+
+    </aside>
+
+    <!-- RESIZER DIVIDER (GESER-GESER UKURAN SIDEBAR) -->
+    <div id="sidebar-resizer" class="hidden lg:flex items-center justify-center shrink-0" title="Geser untuk mengubah ukuran sidebar • Klik ganda untuk reset" role="separator" aria-orientation="vertical" aria-label="Pengubah ukuran sidebar"></div>
+
+    <!-- TOMBOL AMBANG TOGGLE EDGE (CHEVRON TUTUP/BUKA SIDEBAR) -->
+    <button id="btn-sidebar-edge-toggle" class="hidden lg:flex fixed top-20 z-30 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-xs hover:shadow-md hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 items-center justify-center text-slate-500 cursor-pointer transition-all duration-200 group" title="Tutup Sidebar (Ctrl+B)" aria-label="Tutup atau buka sidebar">
+      <i id="edge-toggle-icon" class="bi bi-chevron-left text-xs transition-transform group-hover:scale-110"></i>
+    </button>
+
+    <!-- AREA KONTEN UTAMA (WORKSPACE INDEPENDENT SCROLL) -->
+    <main class="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-slate-50/70">
+      
+      <!-- Toolbar Atas Workspace (Tinggi Seragam h-10 & rounded-lg untuk Semua Tombol) -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 mb-5">
+        
+        <!-- Judul Tampilan Aktif & Tombol Buka Sidebar (saat sidebar tertutup) -->
+        <div class="flex items-center gap-2.5">
+          <button id="btn-expand-sidebar-workspace" class="hidden h-9 px-3 rounded-lg bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 shadow-2xs items-center gap-2 text-xs font-medium transition" title="Buka Sidebar (Ctrl+B)">
+            <i class="bi bi-layout-sidebar text-emerald-600 text-sm"></i>
+            <span>Buka Sidebar</span>
+          </button>
+          <h2 id="view-title" class="text-lg sm:text-xl font-bold text-slate-800">Berkas Saya</h2>
+        </div>
+
+        <!-- Toolbar Kontrol: Toggle Grid/List di kiri pada mobile, menyatu di kanan pada desktop -->
+        <div class="flex items-center justify-between w-full sm:w-auto sm:justify-end gap-2">
+          
+          <!-- Tombol Switch Tampilan Grid / List (rata kiri di mobile, h-10 rounded-lg) -->
+          <div class="h-10 p-1 bg-white border border-slate-200 rounded-lg flex items-center gap-1 shadow-2xs shrink-0">
+            <button id="btn-view-grid" class="h-8 w-8 rounded-md text-emerald-700 bg-emerald-50 flex items-center justify-center transition" title="Tampilan Kisi (Grid)">
+              <i class="bi bi-grid-fill text-sm"></i>
+            </button>
+            <button id="btn-view-list" class="h-8 w-8 rounded-md text-slate-400 hover:text-slate-700 flex items-center justify-center transition" title="Tampilan Daftar (List)">
+              <i class="bi bi-list-ul text-sm"></i>
+            </button>
+          </div>
+
+          <!-- Kontrol Kanan: Pengurutan -->
+          <div class="flex items-center gap-2">
+            <!-- Dropdown Pengurutan (h-10 rounded-lg) -->
+            <select id="sort-select" class="h-10 px-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 outline-hidden focus:border-emerald-500 shadow-2xs">
+              <option value="date-desc">Terbaru diunggah</option>
+              <option value="date-asc">Terlama diunggah</option>
+              <option value="name-asc">Nama (A-Z)</option>
+              <option value="name-desc">Nama (Z-A)</option>
+              <option value="size-desc">Ukuran (Terbesar)</option>
+              <option value="size-asc">Ukuran (Terkecil)</option>
+            </select>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ==================================================================== -->
+      <!-- TAMPILAN BERKAS (GRID VIEW & LIST VIEW) -->
+      <!-- ==================================================================== -->
+
+      <!-- Container Grid View (Tampilan Kisi) -->
+      <div id="files-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- Kartu berkas di-render secara dinamis oleh JavaScript -->
+      </div>
+
+      <!-- Container List View (Tampilan Daftar Tabel) -->
+      <div id="files-list-container" class="hidden bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase font-semibold">
+                <th class="py-3 px-4">Nama Berkas</th>
+                <th class="py-3 px-4 hidden sm:table-cell">Kategori</th>
+                <th class="py-3 px-4">Ukuran</th>
+                <th class="py-3 px-4 hidden md:table-cell">Waktu Unggah</th>
+                <th class="py-3 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="file-list-body" class="divide-y divide-slate-100">
+              <!-- Baris tabel di-render dinamis -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Placeholder Ketika Repositori Kosong -->
+      <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center py-16 text-center text-slate-400">
+        <div class="w-16 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3 text-slate-400 shadow-2xs">
+          <i class="bi bi-folder2-open text-3xl text-slate-400"></i>
+        </div>
+        <p class="font-bold text-sm text-slate-700">Belum ada berkas di folder ini</p>
+        <p class="text-xs text-slate-500 mt-1 max-w-sm">Tarik berkas ke halaman ini atau klik tombol Unggah Berkas untuk menyimpan.</p>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- FLOATING ACTION BUTTON (FAB) UNTUK UNGGAH CEPAT DI MOBILE (h-12 w-12) -->
+  <!-- ======================================================================== -->
+  <button id="btn-fab-upload" class="lg:hidden fixed bottom-6 right-6 z-20 w-12 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg flex items-center justify-center transition active:scale-95" title="Unggah Berkas">
+    <i class="bi bi-plus-lg text-xl"></i>
+  </button>
+
+  <!-- ======================================================================== -->
+  <!-- WIDGET NOTIFIKASI PROGRES UNGGAH (POJOK KANAN BAWAH) -->
+  <!-- ======================================================================== -->
+  <div id="upload-widget" class="fixed bottom-6 right-6 z-30 w-80 bg-white border border-slate-200 rounded-xl shadow-2xl p-4 hidden transition-all">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2 overflow-hidden">
+        <i class="bi bi-cloud-arrow-up text-emerald-600 text-base"></i>
+        <span id="upload-widget-filename" class="text-xs font-semibold text-slate-800 truncate">nama_berkas.ext</span>
+      </div>
+      <span id="upload-widget-percent" class="text-xs font-mono font-bold text-emerald-600">0%</span>
+    </div>
+    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden mb-2">
+      <div id="upload-widget-progress-bar" class="bg-emerald-600 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
+    </div>
+    <p id="upload-widget-status" class="text-[11px] text-slate-500 flex items-center gap-1.5">
+      <i class="bi bi-arrow-repeat animate-spin text-emerald-600"></i>
+      <span>Mengunggah ke Cloud Storage...</span>
+    </p>
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- MODAL: GANTI NAMA BERKAS (RENAME MODAL) -->
+  <!-- ======================================================================== -->
+  <div id="rename-modal" class="fixed inset-0 bg-black/40 backdrop-blur-2xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-xl w-full max-w-md overflow-hidden shadow-2xl p-5">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+          <i class="bi bi-pencil-square text-emerald-600"></i>
+          Ganti Nama Berkas
+        </h3>
+        <button id="btn-close-rename" class="text-slate-400 hover:text-slate-600">
+          <i class="bi bi-x-lg text-xs"></i>
+        </button>
+      </div>
+
+      <form id="rename-form" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-700 font-medium mb-1.5">Nama Berkas Baru</label>
+          <input type="text" id="rename-input-name" required class="w-full h-10 px-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-hidden focus:border-emerald-500 text-xs">
+          <p class="text-[11px] text-slate-500 mt-1">Ekstensi asli akan dipertahankan secara otomatis jika Anda tidak menuliskannya.</p>
+        </div>
+
+        <div id="rename-error" class="hidden p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs"></div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="btn-cancel-rename" class="h-9 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition">
+            Batal
+          </button>
+          <button type="submit" id="btn-submit-rename" class="h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition flex items-center gap-1.5">
+            <i class="bi bi-check2"></i> Simpan Nama
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- MODAL: PRATINJAU BERKAS (PREVIEW MODAL) -->
+  <!-- ======================================================================== -->
+  <div id="preview-modal" class="fixed inset-0 bg-black/60 backdrop-blur-2xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <i id="preview-icon" class="bi bi-file-earmark text-emerald-600 text-lg"></i>
+          <h3 id="preview-title" class="font-semibold text-sm text-slate-800 truncate">Pratinjau Berkas</h3>
+        </div>
+        <button id="btn-close-preview" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div id="preview-content" class="p-4 overflow-y-auto flex-1 flex flex-col items-center justify-center min-h-[240px] bg-slate-100/50">
+        <!-- Konten preview (gambar, audio, video, teks, pdf) -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-50 text-xs">
+        <span id="preview-meta" class="text-slate-500 font-mono text-center sm:text-left">--</span>
+        <div class="flex items-center gap-2">
+          <button id="preview-btn-rename" class="h-9 px-3.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium flex items-center gap-1.5 transition">
+            <i class="bi bi-pencil"></i> Ganti Nama
+          </button>
+          <button type="button" id="preview-btn-download" class="h-9 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium flex items-center gap-1.5 transition">
+            <i class="bi bi-download"></i> Unduh
+          </button>
+          <button id="preview-btn-close" class="h-9 px-3.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition">
+            Tutup
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================================================================== -->
+  <!-- MODAL: KONFIRMASI HAPUS (DELETE MODAL) -->
+  <!-- ======================================================================== -->
+  <div id="delete-modal" class="fixed inset-0 bg-black/50 backdrop-blur-2xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-xl w-full max-w-md overflow-hidden shadow-2xl p-5">
+      <div class="flex items-center gap-3 text-rose-600 mb-3">
+        <div class="w-10 h-10 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center">
+          <i class="bi bi-exclamation-triangle text-lg"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-800 text-sm">Konfirmasi Penghapusan</h3>
+          <p class="text-xs text-slate-500">Tindakan ini tidak dapat dibatalkan</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-600 mb-4 leading-relaxed">
+        Apakah Anda yakin ingin menghapus berkas <span id="delete-filename" class="font-bold text-slate-900 underline"></span> dari penyimpanan Cloud? Berkas fisik akan dihapus secara permanen.
+      </p>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button id="btn-cancel-delete" class="h-9 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition">
+          Batal
+        </button>
+        <button id="btn-confirm-delete" class="h-9 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium transition flex items-center gap-1.5">
+          <i class="bi bi-trash"></i> Hapus Permanen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wadah Notifikasi Toast -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- JavaScript Utama Aplikasi -->
+  <script src="app.js"></script>
+</body>
+</html>

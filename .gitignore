@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment & Credentials
+.env
+.env.local
+.env.*.local
+*.env
+
+# Runtime / Data lokal & Basis Data JSON
+# Abaikan berkas riwayat upload lokal, simpan folder data/ lewat .gitkeep
+data/*
+!data/.gitkeep
+
+# Berkas Sementara & Uploads
+uploads/
+temp/
+tmp/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Editor & IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.sublime-workspace
+*.sublime-project
+
+# Sistem Operasi (Windows & macOS)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+CLOUDFLARE_TUNNEL.md
+DEPLOY_SERVER.md
+PANDUAN.md
+LAPORAN_DEPLOYMENT.md
+oortcloud.md
