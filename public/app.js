@@ -468,38 +468,21 @@ if (btnViewList) btnViewList.addEventListener("click", () => setViewMode("list")
 setViewMode(state.viewMode);
 
 // ============================================================================
-// 6. RESPONSIVE SIDEBAR & RESIZING (DRAG SPLITTER)
+// 6. RESPONSIVE SIDEBAR & RESIZING (DRAG SPLITTER & COLLAPSE)
 // ============================================================================
 const DEFAULT_SIDEBAR_WIDTH = 256;
 const MIN_SIDEBAR_WIDTH = 180;
 
 function getMaxSidebarWidth() {
-  return Math.max(MIN_SIDEBAR_WIDTH, Math.min(560, Math.floor(window.innerWidth * 0.45)));
+  return Math.max(MIN_SIDEBAR_WIDTH, Math.min(520, Math.floor(window.innerWidth * 0.45)));
 }
 
 function updateSidebarUIState() {
   if (!sidebar) return;
   const isDesktop = window.innerWidth >= 1024;
   const isCollapsed = sidebar.classList.contains("desktop-collapsed");
-  const currentWidth = isCollapsed ? 0 : (sidebar.getBoundingClientRect().width || DEFAULT_SIDEBAR_WIDTH);
 
-  if (btnSidebarEdgeToggle) {
-    if (!isDesktop) {
-      btnSidebarEdgeToggle.style.display = "none";
-    } else {
-      btnSidebarEdgeToggle.style.display = "flex";
-      if (isCollapsed) {
-        btnSidebarEdgeToggle.style.left = "12px";
-        btnSidebarEdgeToggle.title = "Buka Sidebar (Ctrl+B)";
-        if (edgeToggleIcon) edgeToggleIcon.className = "bi bi-chevron-right text-xs transition-transform group-hover:scale-110";
-      } else {
-        btnSidebarEdgeToggle.style.left = `${Math.round(currentWidth) - 14}px`;
-        btnSidebarEdgeToggle.title = "Tutup Sidebar (Ctrl+B)";
-        if (edgeToggleIcon) edgeToggleIcon.className = "bi bi-chevron-left text-xs transition-transform group-hover:scale-110";
-      }
-    }
-  }
-
+  // Tombol Buka Sidebar di Workspace Toolbar
   if (btnExpandSidebarWorkspace) {
     if (isDesktop && isCollapsed) {
       btnExpandSidebarWorkspace.classList.remove("hidden");
@@ -510,6 +493,23 @@ function updateSidebarUIState() {
     }
   }
 
+  // Tombol Chevron Pinned di Garis Divider Resizer
+  if (btnSidebarEdgeToggle) {
+    if (isDesktop && !isCollapsed) {
+      btnSidebarEdgeToggle.style.display = "flex";
+      btnSidebarEdgeToggle.title = "Tutup Sidebar (Ctrl+B)";
+      if (edgeToggleIcon) edgeToggleIcon.className = "bi bi-chevron-left text-[9px]";
+    } else {
+      btnSidebarEdgeToggle.style.display = "none";
+    }
+  }
+
+  // Divider Resizer
+  if (sidebarResizer) {
+    sidebarResizer.style.display = isDesktop && !isCollapsed ? "flex" : "none";
+  }
+
+  // Tooltip tombol hamburger di navbar
   if (btnToggleSidebar) {
     btnToggleSidebar.title = isCollapsed ? "Buka Sidebar (Ctrl+B)" : "Tutup Sidebar (Ctrl+B)";
   }
@@ -518,6 +518,7 @@ function updateSidebarUIState() {
 function toggleSidebar() {
   if (!sidebar) return;
   if (window.innerWidth < 1024) {
+    // Mode Mobile: Toggle Drawer
     const isOpen = sidebar.classList.contains("open");
     if (isOpen) {
       sidebar.classList.remove("open");
@@ -527,23 +528,23 @@ function toggleSidebar() {
       if (sidebarBackdrop) sidebarBackdrop.classList.remove("hidden");
     }
   } else {
+    // Mode Desktop: Toggle Collapse
     const isCollapsed = sidebar.classList.toggle("desktop-collapsed");
-    if (sidebarResizer) {
-      sidebarResizer.style.display = isCollapsed ? "none" : "";
-    }
+    localStorage.setItem("oortcloud_sidebar_collapsed", isCollapsed ? "true" : "false");
+
     if (!isCollapsed) {
       const savedWidth = localStorage.getItem("oortcloud_sidebar_width");
       const targetWidth = savedWidth ? parseInt(savedWidth, 10) : DEFAULT_SIDEBAR_WIDTH;
       sidebar.style.width = `${Math.max(MIN_SIDEBAR_WIDTH, Math.min(getMaxSidebarWidth(), targetWidth))}px`;
     }
+
     updateSidebarUIState();
   }
 }
 
-// Event listener tombol tutup/buka sidebar di semua lokasi
+// Event listener tombol toggle sidebar
 if (btnToggleSidebar) btnToggleSidebar.addEventListener("click", toggleSidebar);
 if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", toggleSidebar);
-if (btnCollapseSidebar) btnCollapseSidebar.addEventListener("click", toggleSidebar);
 if (btnSidebarEdgeToggle) btnSidebarEdgeToggle.addEventListener("click", toggleSidebar);
 if (btnExpandSidebarWorkspace) btnExpandSidebarWorkspace.addEventListener("click", toggleSidebar);
 
@@ -562,12 +563,19 @@ let resizeStartWidth = 0;
 function initSidebarResizer() {
   if (!sidebar || !sidebarResizer) return;
 
-  // Terapkan ukuran yang tersimpan di localStorage
-  const savedWidth = localStorage.getItem("oortcloud_sidebar_width");
-  if (savedWidth && window.innerWidth >= 1024) {
-    const parsed = parseInt(savedWidth, 10);
-    if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH) {
-      sidebar.style.width = `${Math.min(parsed, getMaxSidebarWidth())}px`;
+  // Pulihkan status collapse dan lebar sidebar dari localStorage
+  if (window.innerWidth >= 1024) {
+    const isSavedCollapsed = localStorage.getItem("oortcloud_sidebar_collapsed") === "true";
+    if (isSavedCollapsed) {
+      sidebar.classList.add("desktop-collapsed");
+    } else {
+      const savedWidth = localStorage.getItem("oortcloud_sidebar_width");
+      if (savedWidth) {
+        const parsed = parseInt(savedWidth, 10);
+        if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH) {
+          sidebar.style.width = `${Math.min(parsed, getMaxSidebarWidth())}px`;
+        }
+      }
     }
   }
 
@@ -602,9 +610,6 @@ function initSidebarResizer() {
     if (newWidth > maxWidth) newWidth = maxWidth;
 
     sidebar.style.width = `${newWidth}px`;
-    if (btnSidebarEdgeToggle) {
-      btnSidebarEdgeToggle.style.left = `${Math.round(newWidth) - 14}px`;
-    }
   });
 
   const stopResize = (e) => {
@@ -628,7 +633,7 @@ function initSidebarResizer() {
   sidebarResizer.addEventListener("pointerup", stopResize);
   sidebarResizer.addEventListener("pointercancel", stopResize);
 
-  // Klik 2x pada pembatas untuk mereset ukuran ke default
+  // Klik ganda pada resizer untuk mereset ukuran ke default (256px)
   sidebarResizer.addEventListener("dblclick", () => {
     if (window.innerWidth < 1024) return;
     sidebar.style.width = `${DEFAULT_SIDEBAR_WIDTH}px`;
@@ -641,14 +646,14 @@ function initSidebarResizer() {
   window.addEventListener("resize", () => {
     if (window.innerWidth < 1024) {
       sidebar.style.width = "";
-      if (sidebarResizer) sidebarResizer.style.display = "";
+      if (sidebarResizer) sidebarResizer.style.display = "none";
       sidebar.classList.remove("desktop-collapsed");
     } else {
       if (!sidebar.classList.contains("desktop-collapsed")) {
         const saved = localStorage.getItem("oortcloud_sidebar_width");
         const target = saved ? parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH;
         sidebar.style.width = `${Math.max(MIN_SIDEBAR_WIDTH, Math.min(getMaxSidebarWidth(), target))}px`;
-        if (sidebarResizer) sidebarResizer.style.display = "";
+        if (sidebarResizer) sidebarResizer.style.display = "flex";
       }
     }
     updateSidebarUIState();

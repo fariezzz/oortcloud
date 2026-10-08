@@ -27,7 +27,7 @@
   </script>
   <!-- Bootstrap Icons CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.2.0">
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col font-sans antialiased">
 
@@ -54,10 +54,10 @@
   <!-- ======================================================================== -->
   <header class="h-16 shrink-0 border-b border-slate-200 bg-white px-4 sm:px-6 flex items-center justify-between gap-3 z-30 shadow-xs">
     
-    <!-- Sisi Kiri: Hamburger Mobile & Logo Bersih -->
+    <!-- Sisi Kiri: Hamburger Toggle Sidebar (Mobile & Desktop) & Logo Bersih -->
     <div class="flex items-center gap-3 shrink-0">
-      <!-- Tombol Hamburger (Buka/Tutup Sidebar di Mobile & Desktop) -->
-      <button id="btn-toggle-sidebar" class="h-10 w-10 rounded-lg hover:bg-slate-100 border border-slate-200 text-slate-600 flex items-center justify-center transition" title="Buka/Tutup Sidebar">
+      <!-- Tombol Hamburger (Buka/Tutup Sidebar di Semua Layar) -->
+      <button id="btn-toggle-sidebar" class="h-10 w-10 rounded-lg hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-emerald-700 flex items-center justify-center transition shadow-2xs" title="Buka/Tutup Sidebar (Ctrl+B)">
         <i class="bi bi-list text-xl"></i>
       </button>
 
@@ -106,14 +106,6 @@
       <!-- Bagian Atas Sidebar -->
       <div class="space-y-3">
         
-        <!-- Header Kecil Sidebar: Label & Tombol Tutup Sidebar -->
-        <div class="flex items-center justify-between px-1 pb-1">
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Navigasi</span>
-          <button id="btn-collapse-sidebar" class="h-7 w-7 rounded-md hover:bg-slate-100 border border-slate-200/60 text-slate-400 hover:text-slate-700 flex items-center justify-center transition" title="Tutup Sidebar (Ctrl+B)">
-            <i class="bi bi-layout-sidebar-inset text-sm"></i>
-          </button>
-        </div>
-
         <!-- Tombol Unggah Berkas Utama (Hijau Daun, rounded-lg, h-10) -->
         <input type="file" id="file-input" class="hidden">
         <button id="btn-sidebar-upload" class="w-full h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs hover:shadow-sm transition flex items-center justify-center gap-2.5 font-semibold text-xs sm:text-sm whitespace-nowrap overflow-hidden">
@@ -155,7 +147,7 @@
 
       </div>
 
-      <!-- Bagian Bawah Sidebar: Indikator Penyimpanan -->
+      <!-- Bagian Bawah Sidebar: Indikator Penyimpanan (Utuh tanpa terpotong) -->
       <div class="pt-3 border-t border-slate-200 space-y-1.5 shrink-0 overflow-hidden">
         <div class="flex items-center gap-2 text-xs font-semibold text-slate-700 truncate">
           <i class="bi bi-cloud-check text-emerald-600 shrink-0"></i>
@@ -178,13 +170,13 @@
 
     </aside>
 
-    <!-- RESIZER DIVIDER (GESER-GESER UKURAN SIDEBAR) -->
-    <div id="sidebar-resizer" class="hidden lg:flex items-center justify-center shrink-0" title="Geser untuk mengubah ukuran sidebar • Klik ganda untuk reset" role="separator" aria-orientation="vertical" aria-label="Pengubah ukuran sidebar"></div>
-
-    <!-- TOMBOL AMBANG TOGGLE EDGE (CHEVRON TUTUP/BUKA SIDEBAR) -->
-    <button id="btn-sidebar-edge-toggle" class="hidden lg:flex fixed top-20 z-30 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-xs hover:shadow-md hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 items-center justify-center text-slate-500 cursor-pointer transition-all duration-200 group" title="Tutup Sidebar (Ctrl+B)" aria-label="Tutup atau buka sidebar">
-      <i id="edge-toggle-icon" class="bi bi-chevron-left text-xs transition-transform group-hover:scale-110"></i>
-    </button>
+    <!-- RESIZER DIVIDER (GESER UKURAN SIDEBAR DENGAN TOMBOL CHEVRON PINNED) -->
+    <div id="sidebar-resizer" class="hidden lg:flex items-start justify-center shrink-0 relative" title="Geser untuk mengubah ukuran sidebar • Klik ganda untuk reset" role="separator" aria-orientation="vertical" aria-label="Pengubah ukuran sidebar">
+      <!-- Tombol Chevron Pinned Langsung pada Garis Divider (Tidak floating sembarangan) -->
+      <button id="btn-sidebar-edge-toggle" type="button" class="mt-4 -ml-[9px] w-5 h-5 rounded-full bg-white border border-slate-200 shadow-2xs hover:shadow-xs hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 flex items-center justify-center text-slate-400 transition-all z-20 cursor-pointer" title="Tutup Sidebar (Ctrl+B)" aria-label="Tutup sidebar">
+        <i id="edge-toggle-icon" class="bi bi-chevron-left text-[9px]"></i>
+      </button>
+    </div>
 
     <!-- AREA KONTEN UTAMA (WORKSPACE INDEPENDENT SCROLL) -->
     <main class="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-slate-50/70">
@@ -192,13 +184,13 @@
       <!-- Toolbar Atas Workspace (Tinggi Seragam h-10 & rounded-lg untuk Semua Tombol) -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 mb-5">
         
-        <!-- Judul Tampilan Aktif & Tombol Buka Sidebar (saat sidebar tertutup) -->
+        <!-- Judul Tampilan Aktif & Tombol Buka Sidebar (muncul saat sidebar tertutup di desktop) -->
         <div class="flex items-center gap-2.5">
-          <button id="btn-expand-sidebar-workspace" class="hidden h-9 px-3 rounded-lg bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 shadow-2xs items-center gap-2 text-xs font-medium transition" title="Buka Sidebar (Ctrl+B)">
+          <button id="btn-expand-sidebar-workspace" class="hidden h-9 px-3 rounded-lg bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 shadow-2xs items-center gap-2 text-xs font-medium transition cursor-pointer" title="Buka Sidebar (Ctrl+B)">
             <i class="bi bi-layout-sidebar text-emerald-600 text-sm"></i>
             <span>Buka Sidebar</span>
           </button>
-          <h2 id="view-title" class="text-lg sm:text-xl font-bold text-slate-800">Berkas Saya</h2>
+          <h2 id="view-title" class="text-lg sm:text-xl font-bold text-slate-800">Drive Saya</h2>
         </div>
 
         <!-- Toolbar Kontrol: Toggle Grid/List di kiri pada mobile, menyatu di kanan pada desktop -->
@@ -412,7 +404,7 @@
   <!-- Wadah Notifikasi Toast -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
-  <!-- JavaScript Utama Aplikasi -->
-  <script src="app.js"></script>
+  <!-- JavaScript Utama Aplikasi (Cache-busted) -->
+  <script src="app.js?v=2.2.0"></script>
 </body>
 </html>

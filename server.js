@@ -98,7 +98,17 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
+
+// Serve file statis dengan revalidasi agar browser selalu mendapatkan update terbaru
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html") || filePath.endsWith(".js") || filePath.endsWith(".css")) {
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      }
+    },
+  })
+);
 
 // ============================================================================
 // ROUTE API
