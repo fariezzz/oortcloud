@@ -115,6 +115,66 @@ body.is-resizing * {
   -webkit-user-select: none !important;
 }
 
+/* ==========================================================================
+   TOMBOL TOGGLE CHEVRON SIDEBAR (LINGKARAN SEMPURNA & INTERAKTIF)
+   ========================================================================== */
+#btn-sidebar-edge-toggle {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  max-width: 28px !important;
+  max-height: 28px !important;
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+  aspect-ratio: 1 / 1 !important;
+  flex-shrink: 0 !important;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, left 0.22s ease;
+}
+
+#btn-sidebar-edge-toggle:hover {
+  background-color: #f0fdf4;
+  border-color: #34d399;
+  color: #15803d;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.18), 0 2px 4px -2px rgba(16, 185, 129, 0.1);
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+#btn-sidebar-edge-toggle:active {
+  transform: translate(-50%, -50%) scale(0.92);
+  background-color: #dcfce7;
+}
+
+/* Saat sidebar ditutup (lebar 0), geser tombol ke kanan agar lingkaran tidak terpotong tepi layar */
+#sidebar-resizer.is-collapsed #btn-sidebar-edge-toggle {
+  left: 18px;
+  transform: translateY(-50%);
+}
+
+#sidebar-resizer.is-collapsed #btn-sidebar-edge-toggle:hover {
+  transform: translateY(-50%) scale(1.08);
+}
+
+#sidebar-resizer.is-collapsed #btn-sidebar-edge-toggle:active {
+  transform: translateY(-50%) scale(0.92);
+}
+
 /* Kartu File Google Drive Style */
 .drive-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;

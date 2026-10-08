@@ -35,7 +35,6 @@ const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
 const btnCollapseSidebar = document.getElementById("btn-collapse-sidebar");
 const btnSidebarEdgeToggle = document.getElementById("btn-sidebar-edge-toggle");
 const edgeToggleIcon = document.getElementById("edge-toggle-icon");
-const btnExpandSidebarWorkspace = document.getElementById("btn-expand-sidebar-workspace");
 const btnSidebarUpload = document.getElementById("btn-sidebar-upload");
 const btnFabUpload = document.getElementById("btn-fab-upload");
 const fileInput = document.getElementById("file-input");
@@ -482,31 +481,34 @@ function updateSidebarUIState() {
   const isDesktop = window.innerWidth >= 1024;
   const isCollapsed = sidebar.classList.contains("desktop-collapsed");
 
-  // Tombol Buka Sidebar di Workspace Toolbar
-  if (btnExpandSidebarWorkspace) {
-    if (isDesktop && isCollapsed) {
-      btnExpandSidebarWorkspace.classList.remove("hidden");
-      btnExpandSidebarWorkspace.classList.add("flex");
-    } else {
-      btnExpandSidebarWorkspace.classList.add("hidden");
-      btnExpandSidebarWorkspace.classList.remove("flex");
-    }
-  }
-
   // Tombol Chevron Pinned di Garis Divider Resizer
   if (btnSidebarEdgeToggle) {
-    if (isDesktop && !isCollapsed) {
+    if (isDesktop) {
       btnSidebarEdgeToggle.style.display = "flex";
-      btnSidebarEdgeToggle.title = "Tutup Sidebar (Ctrl+B)";
-      if (edgeToggleIcon) edgeToggleIcon.className = "bi bi-chevron-left text-[9px]";
+      if (isCollapsed) {
+        btnSidebarEdgeToggle.title = "Buka Sidebar (Ctrl+B)";
+        if (edgeToggleIcon) edgeToggleIcon.className = "bi bi-chevron-right text-xs";
+      } else {
+        btnSidebarEdgeToggle.title = "Tutup Sidebar (Ctrl+B)";
+        if (edgeToggleIcon) edgeToggleIcon.className = "bi bi-chevron-left text-xs";
+      }
     } else {
       btnSidebarEdgeToggle.style.display = "none";
     }
   }
 
-  // Divider Resizer
+  // Divider Resizer: selalu aktif di desktop
   if (sidebarResizer) {
-    sidebarResizer.style.display = isDesktop && !isCollapsed ? "flex" : "none";
+    if (isDesktop) {
+      sidebarResizer.style.display = "flex";
+      if (isCollapsed) {
+        sidebarResizer.classList.add("is-collapsed");
+      } else {
+        sidebarResizer.classList.remove("is-collapsed");
+      }
+    } else {
+      sidebarResizer.style.display = "none";
+    }
   }
 
   // Tooltip tombol hamburger di navbar
@@ -536,6 +538,8 @@ function toggleSidebar() {
       const savedWidth = localStorage.getItem("oortcloud_sidebar_width");
       const targetWidth = savedWidth ? parseInt(savedWidth, 10) : DEFAULT_SIDEBAR_WIDTH;
       sidebar.style.width = `${Math.max(MIN_SIDEBAR_WIDTH, Math.min(getMaxSidebarWidth(), targetWidth))}px`;
+    } else {
+      sidebar.style.width = "0px";
     }
 
     updateSidebarUIState();
@@ -545,8 +549,20 @@ function toggleSidebar() {
 // Event listener tombol toggle sidebar
 if (btnToggleSidebar) btnToggleSidebar.addEventListener("click", toggleSidebar);
 if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", toggleSidebar);
-if (btnSidebarEdgeToggle) btnSidebarEdgeToggle.addEventListener("click", toggleSidebar);
-if (btnExpandSidebarWorkspace) btnExpandSidebarWorkspace.addEventListener("click", toggleSidebar);
+
+if (btnSidebarEdgeToggle) {
+  btnSidebarEdgeToggle.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+  });
+  btnSidebarEdgeToggle.addEventListener("mousedown", (e) => {
+    e.stopPropagation();
+  });
+  btnSidebarEdgeToggle.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSidebar();
+  });
+}
 
 // Pintasan keyboard Ctrl+B / Cmd+B untuk Buka/Tutup Sidebar
 window.addEventListener("keydown", (e) => {
@@ -582,6 +598,10 @@ function initSidebarResizer() {
   updateSidebarUIState();
 
   sidebarResizer.addEventListener("pointerdown", (e) => {
+    // Jangan mulai drag resize jika pointer mendarat di tombol toggle
+    if (e.target.closest("#btn-sidebar-edge-toggle")) {
+      return;
+    }
     if (e.button !== 0) return; // Hanya klik kiri mouse
     if (window.innerWidth < 1024) return;
     if (sidebar.classList.contains("desktop-collapsed")) return;
